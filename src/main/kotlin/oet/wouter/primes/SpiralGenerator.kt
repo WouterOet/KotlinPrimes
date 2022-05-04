@@ -34,13 +34,13 @@ class SpiralGenerator(
 				currentSquared = current * current
 			}
 
-			points.add(print(previousSquared, current, currentSquared, prime))
+			points.add(toSvgPoint(previousSquared, current, currentSquared, prime))
 		}
 		points.add(footer())
 		return points.joinToString("\n")
 	}
 
-	private fun print(previousSquared: Int, current: Int, currentSquared: Int, prime: Int): String {
+	private fun toSvgPoint(previousSquared: Int, current: Int, currentSquared: Int, prime: Int): String {
 		val range = currentSquared - previousSquared
 		val value = prime - previousSquared
 		val angle = (0.0 + value) / range

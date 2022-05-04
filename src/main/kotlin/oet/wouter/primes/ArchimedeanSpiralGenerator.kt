@@ -9,6 +9,7 @@ import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlin.streams.asSequence
 import kotlin.streams.toList
 
 private val DECIMAL_FORMAT = DecimalFormat("#.00", DecimalFormatSymbols.getInstance(Locale.ENGLISH))
@@ -20,7 +21,7 @@ private const val Y_OFFSET = DIMENSION / 2
 class ArchimedeanSpiralGenerator(
 	private val numberOfPrimes: Int = 20,
 	private val dotSize: String = "2.0",
-	private val radiusBase: Double = 0.01
+	private val radiusBase: Double = 0.05
 ) {
 
 	data class Point(val x: Int, val y: Int)
@@ -35,15 +36,30 @@ class ArchimedeanSpiralGenerator(
 		val primes = Primes.get().subList(0, numberOfPrimes)
 
 		val points = zipLists2(primes, ranges)
+//			.onEach { println(it) }
 			.map { toDegrees(it) }
 			.map { toPoint(it) }
-			.joinToString("\n") { toSvgPoint(it, toHue(it)) }
+			.joinToString("\n") { toSvgPoint(it, toHue(it), dotSize) }
+
 		return listOf(
 			header(),
-			grid(),
+			simpleSpiral(),
 			points,
 			footer()
 		).joinToString("\n")
+	}
+
+	private fun simpleSpiral(): String {
+		return IntStream.range(2, 10000)
+			.asSequence()
+			.map { toPoint(0.0 + it) }
+			.map { """${it.x},${it.y}""" }
+			.joinToString(" ")
+			.let { """<polyline points="$it" fill="none" stroke="white" />""" }
+
+//		<!-- Example of the same polyline shape with stroke and no fill -->
+//		<polyline points="100,100 150,25 150,75 200,0"
+//		fill="none" stroke="black" />
 	}
 
 	private fun grid(): String {
@@ -89,14 +105,13 @@ class ArchimedeanSpiralGenerator(
 	private fun footer() = "</svg>\n"
 
 	private fun toDegrees(rangePoint: RangePoint): Double {
-
 		val rangeStart = rangePoint.rangeStart
 		val rangeEnd = rangePoint.rangeEnd
 
 		val degreesPerStep: Double = 360.0 / (rangeEnd - rangeStart)
 		val stepOffset = rangePoint.prime - rangeStart
 
-		return stepOffset * degreesPerStep + 360 * rangePoint.rounds
+		return (stepOffset * degreesPerStep + 360 * rangePoint.rounds).also { println("$rangePoint $it") }
 	}
 
 	private fun toHue(point: Point): Double =
@@ -106,15 +121,15 @@ class ArchimedeanSpiralGenerator(
 		val a = 0
 		val c = 1.0
 		val r: Double = a + radiusBase * degrees.pow(1 / c)
-		val x: Int = (r * cos(degrees * (Math.PI / 180))).roundToInt()
-		val y: Int = (r * sin(degrees * (Math.PI / 180))).roundToInt()
+		val x: Int = (r * cos(degrees * (Math.PI / 180))).roundToInt() + X_OFFSET
+		val y: Int = (r * sin(degrees * (Math.PI / 180))).roundToInt() + Y_OFFSET
 
 		return Point(x, y)
 	}
 
-	private fun toSvgPoint(p: Point, hue: Double): String {
-		val xx = DECIMAL_FORMAT.format(p.x + X_OFFSET)
-		val yy = DECIMAL_FORMAT.format(p.y + Y_OFFSET)
+	private fun toSvgPoint(p: Point, hue: Double, dotSize: String): String {
+		val xx = DECIMAL_FORMAT.format(p.x)
+		val yy = DECIMAL_FORMAT.format(p.y)
 		val huehue = DECIMAL_FORMAT.format(hue)
 
 		return """<circle cx="$xx" cy="$yy" r="$dotSize" style="fill:hsl($huehue, 75%, 50%)" />"""
